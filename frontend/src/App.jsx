@@ -29,6 +29,18 @@ function App() {
   // Upload history
   const [uploadHistory, setUploadHistory] = useState([]);
 
+  // Voice-to-text state
+  const [vtStatus, setVtStatus] = useState("idle");
+  const [vtError, setVtError] = useState("");
+  const [vtTranscript, setVtTranscript] = useState("");
+  const [vtSavedAs, setVtSavedAs] = useState("");
+  const [vtIsRecording, setVtIsRecording] = useState(false);
+  const [vtCanCopy, setVtCanCopy] = useState(false);
+  const vtAudioRef = useRef(null);
+  const vtMediaRecorderRef = useRef(null);
+  const vtStreamRef = useRef(null);
+  const vtChunksRef = useRef([]);
+
   const handleFileUpload = async (file) => {
     if (!file || file.type !== "application/pdf") {
       alert("Please upload a valid PDF file.");
@@ -86,9 +98,115 @@ function App() {
 
   const navItems = [
     { id: 'text-to-audio', label: 'Text to Audio', icon: SpeakerWaveIcon, description: 'Convert PDFs to audio' },
-    { id: 'audio-to-text', label: 'Audio to Text', icon: MicrophoneIcon, description: 'Transcribe audio files' },
+    { id: 'audio-to-text', label: 'Voice to Text', icon: MicrophoneIcon, description: 'Live microphone transcription' },
     { id: 'sign-language', label: 'Sign Language', icon: HandRaisedIcon, description: 'Sign language interpreter' },
   ];
+
+  // --- Voice to Text helpers ---
+  const vtSetStatus = (status, error = "") => {
+    setVtStatus(status);
+    setVtError(error);
+  };
+
+  const pickMimeType = () => {
+    const preferred = [
+      "audio/webm;codecs=opus",
+      "audio/webm",
+      "audio/ogg;codecs=opus",
+      "audio/ogg",
+    ];
+    for (const t of preferred) {
+      if (window.MediaRecorder && MediaRecorder.isTypeSupported(t)) return t;
+    }
+    return "";
+  };
+
+  const startVoiceRecording = async () => {
+    try {
+      setVtTranscript("");
+      setVtSavedAs("");
+      setVtCanCopy(false);
+      vtChunksRef.current = [];
+      vtSetStatus("requesting");
+
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      vtStreamRef.current = stream;
+      const mimeType = pickMimeType();
+
+      const mediaRecorder = mimeType
+        ? new MediaRecorder(stream, { mimeType })
+        : new MediaRecorder(stream);
+
+      vtMediaRecorderRef.current = mediaRecorder;
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) vtChunksRef.current.push(e.data);
+      };
+
+      mediaRecorder.onstart = () => {
+        setVtIsRecording(true);
+        vtSetStatus("recording");
+      };
+
+      mediaRecorder.onstop = async () => {
+        setVtIsRecording(false);
+        vtSetStatus("uploading");
+
+        const blob = new Blob(vtChunksRef.current, {
+          type: mediaRecorder.mimeType || "audio/webm",
+        });
+        if (vtAudioRef.current) {
+          vtAudioRef.current.src = URL.createObjectURL(blob);
+        }
+
+        try {
+          const form = new FormData();
+          const ext = (mediaRecorder.mimeType || "").includes("ogg") ? "ogg" : "webm";
+          form.append("audio", blob, `recording.${ext}`);
+
+          const res = await fetch("http://localhost:8000/api/transcribe-voice", {
+            method: "POST",
+            body: form,
+          });
+
+          const data = await res.json();
+          if (!res.ok) {
+            throw new Error(data?.detail || data?.error || "Transcription failed");
+          }
+
+          setVtTranscript(data.text || "(No speech detected)");
+          setVtSavedAs(data.saved_as || "");
+          setVtCanCopy(!!(data.text && data.text.trim().length > 0));
+          vtSetStatus("done");
+        } catch (err) {
+          vtSetStatus("error", err.message || String(err));
+        } finally {
+          if (vtStreamRef.current) {
+            vtStreamRef.current.getTracks().forEach((t) => t.stop());
+            vtStreamRef.current = null;
+          }
+          vtMediaRecorderRef.current = null;
+        }
+      };
+
+      mediaRecorder.start();
+    } catch (err) {
+      vtSetStatus("error", err.message || String(err));
+      setVtIsRecording(false);
+    }
+  };
+
+  const stopVoiceRecording = () => {
+    const rec = vtMediaRecorderRef.current;
+    if (rec && rec.state !== "inactive") {
+      rec.stop();
+    }
+  };
+
+  const handleCopyTranscript = async () => {
+    if (!vtTranscript.trim()) return;
+    await navigator.clipboard.writeText(vtTranscript);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 relative overflow-hidden">
@@ -466,27 +584,118 @@ function App() {
               </div>
             )}
 
-            {/* AUDIO TO TEXT PAGE */}
+            {/* AUDIO TO TEXT (VOICE TO TEXT) PAGE */}
             {currentPage === 'audio-to-text' && (
               <div className="max-w-4xl mx-auto">
                 <div className="text-center mb-12">
                   <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full border border-white/20 mb-4">
                     <MicrophoneIcon className="w-4 h-4 text-blue-300" />
-                    <span className="text-sm text-blue-200 font-medium">Audio to Text Transcription</span>
+                    <span className="text-sm text-blue-200 font-medium">Live Voice to Text</span>
                   </div>
                   <h1 className="text-5xl lg:text-6xl font-black tracking-tight mb-3 bg-clip-text text-transparent bg-gradient-to-r from-white via-blue-200 to-white">
-                    Audio Transcription
+                    Voice Transcription
                   </h1>
                   <p className="text-lg text-slate-300">
-                    Upload audio files and get accurate text transcriptions
+                    Record with your microphone and convert speech into text, powered by Vosk.
                   </p>
                 </div>
 
-                <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl p-10 border border-white/20">
-                  <div className="text-center py-20">
-                    <MicrophoneIcon className="w-24 h-24 text-blue-400 mx-auto mb-6" />
-                    <h3 className="text-2xl font-bold text-slate-700 mb-2">Coming Soon</h3>
-                    <p className="text-slate-500">Audio transcription feature is under development</p>
+                <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl p-10 border border-white/20 space-y-8">
+                  {/* Controls */}
+                  <div className="flex flex-wrap items-center gap-4">
+                    <button
+                      type="button"
+                      onClick={startVoiceRecording}
+                      disabled={vtIsRecording}
+                      className={`inline-flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold shadow-md transition ${
+                        vtIsRecording
+                          ? "bg-slate-300 text-slate-500 cursor-not-allowed"
+                          : "bg-blue-600 text-white hover:bg-blue-700"
+                      }`}
+                    >
+                      <MicrophoneIcon className="w-5 h-5" />
+                      {vtIsRecording ? "Recording..." : "Start recording"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={stopVoiceRecording}
+                      disabled={!vtIsRecording}
+                      className={`inline-flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold shadow-md transition ${
+                        vtIsRecording
+                          ? "bg-red-600 text-white hover:bg-red-700"
+                          : "bg-slate-200 text-slate-500 cursor-not-allowed"
+                      }`}
+                    >
+                      Stop
+                    </button>
+
+                    <div className="flex items-center gap-2 ml-auto">
+                      <span
+                        className={`inline-block w-3 h-3 rounded-full ${
+                          vtIsRecording ? "bg-red-500 animate-pulse" : "bg-green-400"
+                        }`}
+                      />
+                      <span className="text-xs font-medium text-slate-600">
+                        {vtStatus === "idle" && "Idle"}
+                        {vtStatus === "requesting" && "Requesting microphone permission..."}
+                        {vtStatus === "recording" && "Recording..."}
+                        {vtStatus === "uploading" && "Uploading & transcribing..."}
+                        {vtStatus === "done" && "Done"}
+                        {vtStatus === "error" && "Error"}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Audio playback */}
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                      <SpeakerWaveIcon className="w-4 h-4 text-blue-500" />
+                      Last recording
+                    </h3>
+                    <audio
+                      ref={vtAudioRef}
+                      controls
+                      className="w-full rounded-lg border border-slate-200"
+                    />
+                  </div>
+
+                  {/* Transcript */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <h3 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                        <DocumentTextIcon className="w-4 h-4 text-blue-500" />
+                        Transcript
+                      </h3>
+                      <button
+                        type="button"
+                        onClick={handleCopyTranscript}
+                        disabled={!vtCanCopy}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold border ${
+                          vtCanCopy
+                            ? "bg-slate-900 text-white border-slate-900 hover:bg-slate-800"
+                            : "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed"
+                        }`}
+                      >
+                        Copy
+                      </button>
+                    </div>
+                    <div className="min-h-[140px] max-h-80 overflow-auto rounded-xl border border-slate-200 bg-slate-50 p-4 text-left text-sm text-slate-800 whitespace-pre-wrap">
+                      {vtTranscript || (
+                        <span className="text-slate-400">
+                          Transcript will appear here after you finish recording.
+                        </span>
+                      )}
+                    </div>
+                    {vtSavedAs && (
+                      <p className="text-xs text-slate-500">
+                        Saved to: <span className="font-mono">{vtSavedAs}</span>
+                      </p>
+                    )}
+                    {vtStatus === "error" && (
+                      <p className="text-xs text-red-600 mt-1">
+                        {vtError || "Something went wrong while transcribing."}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>

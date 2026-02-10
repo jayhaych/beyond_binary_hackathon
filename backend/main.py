@@ -1,14 +1,22 @@
+import json
 import os
 import shutil
+import subprocess
 import uuid
-from fastapi import FastAPI, UploadFile, File, HTTPException
-from fastapi.responses import FileResponse
-from fastapi.middleware.cors import CORSMiddleware
-from pdf2image import convert_from_bytes
+import wave
+from datetime import datetime
+from pathlib import Path
+
+import dotenv
 import easyocr
 import numpy as np
 from elevenlabs.client import ElevenLabs
-import dotenv
+from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from pdf2image import convert_from_bytes
+from vosk import KaldiRecognizer, Model
+
 
 app = FastAPI()
 
@@ -19,6 +27,12 @@ OUTPUT_DIR = "outputs"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 dotenv.load_dotenv()
+
+BACKEND_DIR = Path(__file__).resolve().parent
+SAMPLE_DIR = BACKEND_DIR / "sample"
+VOICE_UPLOADS_DIR = BACKEND_DIR / "voice_uploads"
+MODELS_DIR = BACKEND_DIR / "models"
+DEFAULT_VOSK_MODEL_DIR = MODELS_DIR / "vosk-model-small-en-us-0.15"
 
 # 2. Setup Tools
 # Update this path for your Windows machine!
@@ -39,6 +53,73 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# --- VOICE TO TEXT HELPERS ---
+
+def _require_ffmpeg() -> None:
+    if shutil.which("ffmpeg") is None:
+        raise RuntimeError(
+            "ffmpeg not found on PATH. Install ffmpeg and ensure `ffmpeg` is available."
+        )
+
+
+def _to_wav_16k_mono(input_path: Path, output_path: Path) -> None:
+    """
+    Convert arbitrary audio input to 16kHz mono WAV PCM (s16le) using ffmpeg.
+    """
+    _require_ffmpeg()
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    cmd = [
+        "ffmpeg",
+        "-y",
+        "-i",
+        str(input_path),
+        "-ac",
+        "1",
+        "-ar",
+        "16000",
+        "-c:a",
+        "pcm_s16le",
+        str(output_path),
+    ]
+    proc = subprocess.run(cmd, capture_output=True, text=True)
+    if proc.returncode != 0:
+        raise RuntimeError(f"ffmpeg conversion failed:\n{proc.stderr.strip()}")
+
+
+def _load_vosk_model() -> Model:
+    model_dir = Path(os.environ.get("VOSK_MODEL_DIR", str(DEFAULT_VOSK_MODEL_DIR)))
+    if not model_dir.exists():
+        raise RuntimeError(
+            "Vosk model not found.\n"
+            f"Expected at: {model_dir}\n"
+            "Download a Vosk model and place it there, or set env var VOSK_MODEL_DIR."
+        )
+    return Model(str(model_dir))
+
+
+def _transcribe_wav_with_vosk(wav_path: Path, model: Model) -> str:
+    wf = wave.open(str(wav_path), "rb")
+    try:
+        if wf.getnchannels() != 1 or wf.getframerate() != 16000:
+            raise RuntimeError("WAV must be 16kHz mono. (Conversion should ensure this.)")
+
+        rec = KaldiRecognizer(model, wf.getframerate())
+        rec.SetWords(True)
+
+        while True:
+            data = wf.readframes(4000)
+            if len(data) == 0:
+                break
+            rec.AcceptWaveform(data)
+
+        final = json.loads(rec.FinalResult())
+        return (final.get("text") or "").strip()
+    finally:
+        wf.close()
+
 
 @app.post("/api/process-notes")
 async def process_notes(file: UploadFile = File(...)):
@@ -104,6 +185,53 @@ async def process_notes(file: UploadFile = File(...)):
     except Exception as e:
         print(f"ElevenLabs Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/transcribe-voice")
+async def transcribe_voice(audio: UploadFile = File(...)):
+    """
+    Voice-to-text endpoint.
+
+    Expects a form field named 'audio' containing the recorded audio blob
+    (e.g. audio/webm or audio/ogg). Saves a transcript into SAMPLE_DIR.
+    """
+    SAMPLE_DIR.mkdir(parents=True, exist_ok=True)
+    VOICE_UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+
+    if not audio.filename:
+        raise HTTPException(status_code=400, detail="Empty filename")
+
+    upload_id = uuid.uuid4().hex
+    raw_path = VOICE_UPLOADS_DIR / f"{upload_id}--{audio.filename}"
+    wav_path = VOICE_UPLOADS_DIR / f"{upload_id}.wav"
+
+    try:
+        with open(raw_path, "wb") as buffer:
+            shutil.copyfileobj(audio.file, buffer)
+
+        _to_wav_16k_mono(raw_path, wav_path)
+        model = _load_vosk_model()
+        text = _transcribe_wav_with_vosk(wav_path, model)
+
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        out_name = f"transcript_{ts}.txt"
+        out_path = SAMPLE_DIR / out_name
+        out_path.write_text(text + ("\n" if text else ""), encoding="utf-8")
+
+        return {"text": text, "saved_as": f"backend/sample/{out_name}"}
+    except RuntimeError as e:
+        # Typically ffmpeg or model errors
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        try:
+            raw_path.unlink(missing_ok=True)
+        except Exception:
+            pass
+        try:
+            wav_path.unlink(missing_ok=True)
+        except Exception:
+            pass
+
 
 if __name__ == "__main__":
     import uvicorn

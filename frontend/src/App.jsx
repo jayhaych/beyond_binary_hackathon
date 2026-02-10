@@ -12,7 +12,8 @@ import {
   HomeIcon,
   Bars3Icon,
   XMarkIcon,
-  TrashIcon
+  TrashIcon,
+  ArrowPathIcon // Added for the reset button
 } from '@heroicons/react/24/outline';
 
 function App() {
@@ -41,11 +42,24 @@ function App() {
   const vtStreamRef = useRef(null);
   const vtChunksRef = useRef([]);
 
+  // --- UPDATED: Handle File Upload with Duplicate Check ---
   const handleFileUpload = async (file) => {
     if (!file || file.type !== "application/pdf") {
       alert("Please upload a valid PDF file.");
       return;
     }
+
+    // 1. CHECK FOR DUPLICATES
+    const isDuplicate = uploadHistory.some(item => item.fileName === file.name);
+
+    if (isDuplicate) {
+      setStatus("error");
+      setAudioUrl(null); // Clear previous audio if any
+      setErrorMessage("This file has already been uploaded. Check your history below.");
+      return; // Stop the function here
+    }
+
+    // 2. Start Upload Process
     setStatus("uploading");
     setErrorMessage("");
     setAudioUrl(null);
@@ -90,6 +104,15 @@ function App() {
       setStatus("error");
       setErrorMessage(error.message);
     }
+  };
+
+  // --- NEW: Reset function for "Upload Another" button ---
+  const resetUploadState = (e) => {
+    e.preventDefault(); // Stop the file picker from opening
+    e.stopPropagation(); // Stop bubbling
+    setStatus("idle");
+    setAudioUrl(null);
+    setErrorMessage("");
   };
 
   const deleteHistoryItem = (id) => {
@@ -391,7 +414,7 @@ function App() {
                       )}
                       
                       {status === "success" && (
-                        <div className="animate-in fade-in zoom-in duration-500">
+                        <div className="animate-in fade-in zoom-in duration-500 flex flex-col items-center">
                           <div className="relative mb-4">
                             <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center">
                               <SpeakerWaveIcon className="h-10 w-10 text-green-600 animate-pulse" />
@@ -400,7 +423,16 @@ function App() {
                               <span className="text-white text-xl">✓</span>
                             </div>
                           </div>
-                          <span className="text-xl text-green-900 font-bold">Audio Ready!</span>
+                          <span className="text-xl text-green-900 font-bold mb-3">Audio Ready!</span>
+                          
+                          {/* UPDATED: Reset Button */}
+                          <button 
+                            onClick={resetUploadState}
+                            className="flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow-sm text-sm text-slate-600 hover:text-purple-600 hover:shadow-md transition-all z-20"
+                          >
+                            <ArrowPathIcon className="w-4 h-4" />
+                            Upload Another File
+                          </button>
                         </div>
                       )}
                       
@@ -458,6 +490,13 @@ function App() {
                         <div className="font-bold text-red-900">Oops! Something went wrong</div>
                         <div className="text-sm text-red-600">{errorMessage || "Please try again with a different file"}</div>
                       </div>
+                      {/* Allow reset from error state */}
+                      <button 
+                        onClick={() => setStatus("idle")} 
+                        className="ml-auto text-xs bg-red-100 hover:bg-red-200 px-3 py-1 rounded-full border border-red-200"
+                      >
+                        Try Again
+                      </button>
                     </div>
                   )}
                 </div>

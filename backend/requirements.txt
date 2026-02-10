@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+python-multipart
+python-dotenv
+easyocr
+pdf2image
+pillow
+elevenlabs #U WILL HAVE TO DOWNLOAD POPPLER MANUALLY FOR PDF2IMAGE TO WORK,

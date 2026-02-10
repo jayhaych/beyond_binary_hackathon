@@ -12,12 +12,14 @@ A web application that uses voice recognition to read text files from the backen
 ## Setup
 
 1. Install backend dependencies:
+
    ```bash
    cd backend
    npm install
    ```
 
 2. Start the backend server:
+
    ```bash
    npm start
    ```
@@ -40,4 +42,5 @@ A web application that uses voice recognition to read text files from the backen
 ## API Endpoint
 
 The frontend communicates with the backend API:
+
 - `GET /api/read-file?filename=<filename>` - Reads a file from the backend folder

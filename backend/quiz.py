@@ -7,7 +7,7 @@ import pyttsx3
 import speech_recognition as sr
 import dotenv
 
-dotenv.load_dotenv() #QUIZ 
+dotenv.load_dotenv() 
 
 # --- 1. TTS SETUP ---
 def speak(text):

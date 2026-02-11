@@ -1,65 +1,75 @@
-import json
 import os
 import shutil
-import subprocess
 import uuid
-import wave
-from datetime import datetime
-from pathlib import Path
-
+import json
 import dotenv
+import io
+import wave
+from fastapi import FastAPI, UploadFile, File, HTTPException, BackgroundTasks
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from pdf2image import convert_from_bytes
 import easyocr
 import numpy as np
-import google.generativeai as genai  # Added for Quiz
 from elevenlabs.client import ElevenLabs
-from fastapi import FastAPI, File, HTTPException, UploadFile
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
-from pdf2image import convert_from_bytes
-from vosk import KaldiRecognizer, Model
+import google.generativeai as genai
+from vosk import Model, KaldiRecognizer
+import json as json_lib
 
-# IMPORT YOUR QUIZ MODULE
-# Ensure you have a file named 'quiz.py' in the same directory
-import quiz 
+# IMPORT YOUR NEW QUIZ MODULE
+import quiz  # Assumes filename is quiz.py
 
 app = FastAPI()
 
 # --- CONFIGURATION ---
-# 1. Setup Folders
 UPLOAD_DIR = "uploads"
 OUTPUT_DIR = "outputs"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 dotenv.load_dotenv()
 
-BACKEND_DIR = Path(__file__).resolve().parent
-SAMPLE_DIR = BACKEND_DIR / "sample"
-VOICE_UPLOADS_DIR = BACKEND_DIR / "voice_uploads"
-MODELS_DIR = BACKEND_DIR / "models"
-DEFAULT_VOSK_MODEL_DIR = MODELS_DIR / "vosk-model-small-en-us-0.15"
-
-# 2. Setup Tools
 # Update this path for your Windows machine!
-POPPLER_PATH = r'C:\Release-24.08.0-0\poppler-24.08.0\Library\bin'
+POPPLER_PATH = r'C:\poppler\poppler-25.12.0\Library\bin'
 
-# Initialize AI Tools
+# Initialize Vosk Model (US English)
+try:
+    vosk_model = Model("model")
+    print("✅ Vosk model loaded successfully")
+except Exception as e:
+    print(f"⚠️ Vosk model loading error: {e}")
+    vosk_model = None
+
+# Request model for transcription
+class TranscribeRequest(BaseModel):
+    audio_base64: str  # Base64 encoded WAV audio data
+
+# Initialize Tools
 reader = easyocr.Reader(['en'])
 
-# ElevenLabs Setup
-client = ElevenLabs(
-    api_key=os.getenv("ELEVENLABS_API_KEY"),
-)
+# Check for ElevenLabs API key
+elevenlabs_key = os.getenv("ELEVENLABS_API_KEY")
+if not elevenlabs_key or elevenlabs_key.startswith("your_"):
+    print("⚠️  WARNING: ELEVENLABS_API_KEY not set in .env file!")
+    print("    PDF to Audio conversion will fail.")
+    print("    Paste your API key into backend/.env: ELEVENLABS_API_KEY=your_key")
+    client = None
+else:
+    client = ElevenLabs(api_key=elevenlabs_key)
+    print("✅ ElevenLabs API key loaded")
 
 # Gemini Setup
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-gemini_model = genai.GenerativeModel('gemini-2.0-flash')
+gemini_key = os.getenv("GEMINI_API_KEY")
+if not gemini_key or gemini_key.startswith("your_"):
+    print("⚠️  WARNING: GEMINI_API_KEY not set in .env file!")
+    print("    Quiz generation will fail.")
+    print("    Paste your API key into backend/.env: GEMINI_API_KEY=your_key")
+    model = None
+else:
+    genai.configure(api_key=gemini_key)
+    model = genai.GenerativeModel('gemini-2.5-flash')
+    print("✅ Gemini API key loaded")
 
-# --- GLOBAL STATE ---
-# This dictionary holds the text from the most recently uploaded PDF
-# so the quiz endpoints can access it.
-latest_extracted_text = {} 
-
-# --- CORS ---
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -67,71 +77,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-# --- VOICE TO TEXT HELPERS (VOSK) ---
-
-def _require_ffmpeg() -> None:
-    if shutil.which("ffmpeg") is None:
-        raise RuntimeError(
-            "ffmpeg not found on PATH. Install ffmpeg and ensure `ffmpeg` is available."
-        )
-
-def _to_wav_16k_mono(input_path: Path, output_path: Path) -> None:
-    """Convert arbitrary audio input to 16kHz mono WAV PCM (s16le) using ffmpeg."""
-    _require_ffmpeg()
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-
-    cmd = [
-        "ffmpeg", "-y", "-i", str(input_path),
-        "-ac", "1", "-ar", "16000", "-c:a", "pcm_s16le",
-        str(output_path),
-    ]
-    proc = subprocess.run(cmd, capture_output=True, text=True)
-    if proc.returncode != 0:
-        raise RuntimeError(f"ffmpeg conversion failed:\n{proc.stderr.strip()}")
-
-def _load_vosk_model() -> Model:
-    model_dir = Path(os.environ.get("VOSK_MODEL_DIR", str(DEFAULT_VOSK_MODEL_DIR)))
-    if not model_dir.exists():
-        raise RuntimeError(
-            "Vosk model not found.\n"
-            f"Expected at: {model_dir}\n"
-            "Download a Vosk model and place it there, or set env var VOSK_MODEL_DIR."
-        )
-    return Model(str(model_dir))
-
-def _transcribe_wav_with_vosk(wav_path: Path, model: Model) -> str:
-    wf = wave.open(str(wav_path), "rb")
-    try:
-        if wf.getnchannels() != 1 or wf.getframerate() != 16000:
-            raise RuntimeError("WAV must be 16kHz mono.")
-
-        rec = KaldiRecognizer(model, wf.getframerate())
-        rec.SetWords(True)
-
-        while True:
-            data = wf.readframes(4000)
-            if len(data) == 0:
-                break
-            rec.AcceptWaveform(data)
-
-        final = json.loads(rec.FinalResult())
-        return (final.get("text") or "").strip()
-    finally:
-        wf.close()
-
-
-# --- ENDPOINTS ---
+# Global Text Store (This holds your PDF text!)
+latest_extracted_text = {}
 
 @app.post("/api/process-notes")
 async def process_notes(file: UploadFile = File(...)):
-    """
-    1. Saves PDF.
-    2. OCRs text.
-    3. Saves text to global memory (for quiz).
-    4. Generates Audio (for study).
-    """
-    # --- STEP 1: SAVE THE PDF ---
+    # 1. Save PDF
     unique_id = str(uuid.uuid4())[:8]
     pdf_filename = f"{unique_id}_{file.filename}"
     pdf_path = os.path.join(UPLOAD_DIR, pdf_filename)
@@ -139,43 +90,34 @@ async def process_notes(file: UploadFile = File(...)):
     with open(pdf_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
     
-    print(f"✅ PDF saved to: {pdf_path}")
-
-    # --- STEP 2: CONVERT TO IMAGES ---
+    # 2. Convert & OCR
     try:
         with open(pdf_path, "rb") as f:
-            pdf_bytes = f.read()
+            pdf_bytes = f.read()     
         pages = convert_from_bytes(pdf_bytes, poppler_path=POPPLER_PATH)
     except Exception as e:
         return {"error": f"Poppler failed: {str(e)}"}
 
-    # --- STEP 3: OCR EXTRACTION ---
-    print(f"Processing {len(pages)} pages...")
     full_text = ""
-    for i, page in enumerate(pages):
+    for page in pages:
         page_np = np.array(page)
         text_list = reader.readtext(page_np, detail=0, paragraph=True)
         full_text += " ".join(text_list) + " "
 
-    # [CRITICAL] Save text to global memory for the QUIZ endpoints
+    # [CRITICAL] Save text to global memory
     latest_extracted_text["content"] = full_text
-    print(f"✅ Extracted {len(full_text)} characters to memory.")
+    print(f"✅ Extracted {len(full_text)} characters.")
 
-    # (Optional) Save the text transcript to disk
-    txt_path = os.path.join(OUTPUT_DIR, f"{unique_id}_transcript.txt")
-    with open(txt_path, "w", encoding="utf-8") as f:
-        f.write(full_text)
-
-    # --- STEP 4: GENERATE AUDIO ---
-    print("Generating audio...")
+    # 3. Generate Audio
     try:
-        # Limit text to 500 chars to save ElevenLabs credits during testing
+        if not client:
+            raise HTTPException(status_code=400, detail="ElevenLabs API key not configured. Add ELEVENLABS_API_KEY to backend/.env file")
+        
         audio_generator = client.text_to_speech.convert(
             text=full_text[:500], 
-            voice_id="pNInz6obpgDQGcFmaJgB", # Adam
+            voice_id="pNInz6obpgDQGcFmaJgB",
             model_id="eleven_multilingual_v2"
         )
-        
         audio_filename = f"{unique_id}_audio.mp3"
         audio_path = os.path.join(OUTPUT_DIR, audio_filename)
         
@@ -184,66 +126,21 @@ async def process_notes(file: UploadFile = File(...)):
                 if chunk:
                     f.write(chunk)
         
-        print(f"✅ Audio saved to: {audio_path}")
         return FileResponse(audio_path, media_type="audio/mpeg", filename=audio_filename)
 
     except Exception as e:
         print(f"ElevenLabs Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
-@app.post("/api/transcribe-voice")
-async def transcribe_voice(audio: UploadFile = File(...)):
-    """
-    Voice-to-text endpoint using Vosk.
-    """
-    SAMPLE_DIR.mkdir(parents=True, exist_ok=True)
-    VOICE_UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
-
-    if not audio.filename:
-        raise HTTPException(status_code=400, detail="Empty filename")
-
-    upload_id = uuid.uuid4().hex
-    raw_path = VOICE_UPLOADS_DIR / f"{upload_id}--{audio.filename}"
-    wav_path = VOICE_UPLOADS_DIR / f"{upload_id}.wav"
-
-    try:
-        with open(raw_path, "wb") as buffer:
-            shutil.copyfileobj(audio.file, buffer)
-
-        _to_wav_16k_mono(raw_path, wav_path)
-        model = _load_vosk_model()
-        text = _transcribe_wav_with_vosk(wav_path, model)
-
-        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-        out_name = f"transcript_{ts}.txt"
-        out_path = SAMPLE_DIR / out_name
-        out_path.write_text(text + ("\n" if text else ""), encoding="utf-8")
-
-        return {"text": text, "saved_as": f"backend/sample/{out_name}"}
-    except RuntimeError as e:
-        raise HTTPException(status_code=500, detail=str(e))
-    finally:
-        # Cleanup temp files
-        for p in [raw_path, wav_path]:
-            try:
-                p.unlink(missing_ok=True)
-            except Exception:
-                pass
-
-
 @app.get("/api/generate-quiz")
 async def generate_quiz():
-    """
-    Generates a generic quiz based on the last uploaded PDF using Gemini.
-    """
     text = latest_extracted_text.get("content", "")
     if not text:
-        raise HTTPException(status_code=400, detail="No text found. Upload a PDF first.")
+        raise HTTPException(status_code=400, detail="No text found.")
 
     prompt = f"""
     Create a summary and a 5-question multiple choice quiz based on these notes.
-    Output ONLY valid JSON in this format:
+    Output ONLY valid JSON:
     {{
         "summary": "Summary text",
         "quiz": [
@@ -253,17 +150,21 @@ async def generate_quiz():
     NOTES: {text[:3000]}
     """
     try:
-        response = gemini_model.generate_content(prompt)
+        if not model:
+            raise Exception("Gemini API key not configured. Add GEMINI_API_KEY to backend/.env file")
+        
+        response = model.generate_content(prompt)
         clean_json = response.text.replace("```json", "").replace("```", "").strip()
         return JSONResponse(content=json.loads(clean_json))
     except Exception as e:
         return {"error": str(e)}
 
-
+# --- [UPDATED] BLIND MODE ENDPOINT ---
+# --- [UPDATED] BLIND MODE ENDPOINT ---
 @app.post("/api/start-blind-quiz")
 async def start_blind_quiz():
     """
-    Starts the 'Blind Mode' quiz using the imported 'quiz.py' module.
+    BLOCKING CALL: Waits for the quiz to finish, then returns the results.
     """
     text_content = latest_extracted_text.get("content", "")
     
@@ -272,16 +173,112 @@ async def start_blind_quiz():
     
     print("🚀 Starting Blind Mode Quiz...")
     
-    # Run the quiz logic from quiz.py
-    try:
-        results = quiz.run_quiz_from_text(text_content)
-        if not results:
-            raise HTTPException(status_code=500, detail="Quiz generation returned empty.")
-        return JSONResponse(content=results)
-    except Exception as e:
-        print(f"Blind Quiz Error: {e}")
-        raise HTTPException(status_code=500, detail=f"Quiz module failed: {str(e)}")
+    # Run the quiz synchronously (waits until finished)
+    # Note: For a hackathon this is fine. For production, you'd use WebSockets.
+    results = quiz.run_quiz_from_text(text_content)
+    
+    if not results:
+        raise HTTPException(status_code=500, detail="Quiz generation failed.")
 
+    return JSONResponse(content=results)
+
+@app.post("/api/transcribe-audio")
+async def transcribe_audio(request: TranscribeRequest):
+    """
+    Transcribe audio using Vosk
+    Expects base64 encoded WAV audio data
+    """
+    if not vosk_model:
+        print("❌ Vosk model not loaded!")
+        raise HTTPException(status_code=500, detail="Vosk model not loaded")
+    
+    try:
+        print(f"\n🎙️ === TRANSCRIPTION REQUEST ===")
+        print(f"📥 Received audio data: {len(request.audio_base64)} chars (base64)")
+        
+        # Decode base64 audio
+        import base64
+        audio_bytes = base64.b64decode(request.audio_base64)
+        print(f"📊 Decoded audio: {len(audio_bytes)} bytes")
+        
+        # Try to read as WAV
+        audio_buffer = io.BytesIO(audio_bytes)
+        try:
+            with wave.open(audio_buffer, 'rb') as wav_file:
+                # Get audio parameters
+                n_channels = wav_file.getnchannels()
+                sample_width = wav_file.getsampwidth()
+                sample_rate = wav_file.getframerate()
+                n_frames = wav_file.getnframes()
+                
+                print(f"🎵 WAV Info: {n_channels} ch, {sample_width} bytes/sample, {sample_rate} Hz, {n_frames} frames")
+                print(f"   Duration: {n_frames / sample_rate:.2f} seconds")
+                
+                # Create recognizer with detected sample rate
+                recognizer = KaldiRecognizer(vosk_model, sample_rate)
+                recognizer.SetWords([])  # Allow all words
+                
+                # Process audio in chunks
+                transcript = ""
+                chunk_count = 0
+                
+                while True:
+                    # Read audio data in 4000-byte chunks
+                    data = wav_file.readframes(4000)
+                    if len(data) == 0:
+                        break
+                    
+                    chunk_count += 1
+                    result = recognizer.AcceptWaveform(data)
+                    
+                    if result:
+                        # We got a partial result
+                        partial_json = recognizer.Result()
+                        print(f"  ✓ Chunk {chunk_count}: Got intermediate result")
+                
+                print(f"📝 Processed {chunk_count} chunks, requesting final result...")
+                
+                # Get final result
+                final_json = recognizer.FinalResult()
+                final_result = json_lib.loads(final_json)
+                
+                print(f"📋 Final result: {final_result}")
+                
+                # Extract transcript
+                transcript = ""
+                if "result" in final_result and isinstance(final_result["result"], list):
+                    words = []
+                    for item in final_result["result"]:
+                        if isinstance(item, dict) and "word" in item:
+                            word = item["word"]
+                            print(f"   Word: '{word}' (conf: {item.get('conf', 0)})")
+                            words.append(word)
+                    transcript = " ".join(words)
+                elif "text" in final_result:
+                    # Handle direct text format from Vosk
+                    transcript = final_result["text"]
+                    print(f"   Text: '{transcript}'")
+                elif "partial" in final_result:
+                    transcript = final_result["partial"]
+                    print(f"   Partial: '{transcript}'")
+                
+                transcript = transcript.strip()
+                print(f"✅ Final transcript: '{transcript}'")
+                
+                return {
+                    "transcript": transcript if transcript else "No speech detected",
+                    "status": "success"
+                }
+        
+        except wave.Error as e:
+            print(f"⚠️ Not a valid WAV file: {e}, trying alternative processing...")
+            raise
+            
+    except Exception as e:
+        print(f"❌ Transcription error: {type(e).__name__}: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Transcription failed: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn

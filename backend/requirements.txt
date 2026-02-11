@@ -5,5 +5,10 @@ python-dotenv
 easyocr
 pdf2image
 pillow
-elevenlabs # U WILL HAVE TO DOWNLOAD POPPLER MANUALLY FOR PDF2IMAGE TO WORK,
+elevenlabs
 vosk
+google-generativeai
+SpeechRecognition
+pyttsx3
+pyaudio
+numpy

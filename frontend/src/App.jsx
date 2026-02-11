@@ -479,7 +479,7 @@ function App() {
               
               {/* Main Title */}
               <h1 className="text-7xl md:text-8xl font-black text-white mb-6 tracking-tight">
-                Audio<span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-emerald-400">Scholar</span>
+                Omni<span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-emerald-400">Learn</span>
               </h1>
               <p className="text-xl text-slate-300 max-w-2xl mx-auto leading-relaxed">
                 An inclusive learning platform designed for everyone.
@@ -543,24 +543,24 @@ function App() {
   // VIEW 2: MAIN DASHBOARD
   // =========================================================================
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-blue-200 via-blue-100 to-blue-200 relative overflow-hidden">
       {/* Background Effects */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl animate-pulse delay-700"></div>
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-400/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-cyan-400/10 rounded-full blur-3xl animate-pulse delay-700"></div>
       </div>
 
       <div className="relative z-10 flex min-h-screen">
         
         {/* SIDEBAR */}
         <aside 
-          className={`${sidebarOpen ? 'w-72' : 'w-0'} transition-all duration-300 bg-white/10 backdrop-blur-xl border-r border-white/20 flex-shrink-0 overflow-hidden flex flex-col`}
+          className={`${sidebarOpen ? 'w-72' : 'w-0'} transition-all duration-300 bg-blue-950/85 backdrop-blur-xl border-r border-blue-500/40 flex-shrink-0 overflow-hidden flex flex-col`}
         >
           <div className="p-6 h-full flex flex-col">
             <div className="mb-8">
               <h2 className="text-2xl font-black text-white flex items-center gap-2">
-                <SparklesIcon className="w-7 h-7 text-purple-300" />
-                AudioScholar
+                <SparklesIcon className="w-7 h-7 text-blue-400" />
+                Omnilearn
               </h2>
               <p className="text-xs text-slate-400 mt-1">Accessibility Suite</p>
             </div>
@@ -569,13 +569,13 @@ function App() {
               <ul className="space-y-2">
                 {/* Home Button */}
                 <li>
-                  <button onClick={goHome} className="w-full text-left p-4 rounded-xl text-slate-300 hover:bg-white/10 hover:text-white transition-all flex items-center gap-3">
+                  <button onClick={goHome} className="w-full text-left p-4 rounded-xl text-slate-300 hover:bg-blue-700/40 hover:text-white transition-all flex items-center gap-3">
                      <HomeIcon className="w-6 h-6 text-slate-400" />
                      <div className="font-semibold">Back to Home</div>
                   </button>
                 </li>
                 
-                <div className="my-2 border-t border-white/10"></div>
+                <div className="my-2 border-t border-blue-600/30"></div>
 
                 {navItems.map((item) => {
                   const Icon = item.icon;
@@ -586,12 +586,12 @@ function App() {
                         onClick={() => setCurrentPage(item.id)}
                         className={`w-full text-left p-4 rounded-xl transition-all group ${
                           isActive 
-                            ? 'bg-white/20 text-white shadow-lg' 
-                            : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                            ? 'bg-blue-700/50 text-white shadow-lg' 
+                            : 'text-slate-300 hover:bg-blue-700/40 hover:text-white'
                         }`}
                       >
                         <div className="flex items-center gap-3">
-                          <Icon className={`w-6 h-6 ${isActive ? 'text-purple-300' : 'text-slate-400 group-hover:text-purple-300'}`} />
+                          <Icon className={`w-6 h-6 ${isActive ? 'text-cyan-400' : 'text-slate-400 group-hover:text-cyan-400'}`} />
                           <div className="flex-1">
                             <div className="font-semibold">{item.label}</div>
                             <div className="text-xs opacity-70">{item.description}</div>
@@ -604,9 +604,9 @@ function App() {
               </ul>
             </nav>
             
-            <div className="mt-auto pt-6 border-t border-white/10">
+            <div className="mt-auto pt-6 border-t border-blue-600/30">
               <div className="flex items-center gap-2 text-xs text-slate-400">
-                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></div>
                 <span>System Online</span>
               </div>
             </div>
@@ -617,7 +617,7 @@ function App() {
         <main className="flex-1 overflow-auto">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="fixed top-6 left-6 z-50 lg:hidden bg-white/10 backdrop-blur-xl p-3 rounded-xl border border-white/20 text-white hover:bg-white/20 transition-all"
+            className="fixed top-6 left-6 z-50 lg:hidden bg-blue-950/85 backdrop-blur-xl p-3 rounded-xl border border-blue-500/40 text-white hover:bg-blue-800/60 transition-all"
           >
             {sidebarOpen ? <XMarkIcon className="w-6 h-6" /> : <Bars3Icon className="w-6 h-6" />}
           </button>
@@ -628,26 +628,26 @@ function App() {
             {currentPage === 'text-to-audio' && (
               <div className="max-w-5xl mx-auto animate-in fade-in zoom-in duration-500">
                 <div className="text-center mb-12 space-y-4">
-                  <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full border border-white/20 mb-4">
-                    <SpeakerWaveIcon className="w-4 h-4 text-purple-300" />
-                    <span className="text-sm text-purple-200 font-medium">Visual Learning Mode</span>
+                  <div className="inline-flex items-center gap-2 bg-blue-400/20 backdrop-blur-sm px-4 py-2 rounded-full border border-blue-400/40 mb-4">
+                    <SpeakerWaveIcon className="w-4 h-4 text-blue-700" />
+                    <span className="text-sm text-blue-800 font-medium">Visual Learning Mode</span>
                   </div>
-                  <h1 className="text-5xl lg:text-6xl font-black tracking-tight mb-3 bg-clip-text text-transparent bg-gradient-to-r from-white via-purple-200 to-white">
+                  <h1 className="text-5xl lg:text-6xl font-black tracking-tight mb-3 bg-clip-text text-transparent bg-gradient-to-r from-blue-900 via-blue-700 to-blue-900">
                     PDF to Podcast
                   </h1>
                 </div>
 
                 <div className="grid lg:grid-cols-1 gap-8 mb-8">
-                  <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl p-10 border border-white/20">
+                  <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl p-10 border border-blue-300/40">
                     
                     {/* UPLOAD ZONE */}
                     <div 
                       className={`relative border-3 border-dashed rounded-2xl h-72 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-500 group overflow-hidden
-                        ${status === "processing" ? "border-purple-400 bg-gradient-to-br from-purple-50 to-blue-50 scale-[1.02]" : 
+                        ${status === "processing" ? "border-blue-500 bg-gradient-to-br from-blue-100 to-cyan-100 scale-[1.02]" : 
                           status === "error" ? "border-red-400 bg-red-50 shake" :
                           status === "duplicate" ? "border-yellow-400 bg-yellow-50 shake" :
                           status === "success" ? "border-green-400 bg-gradient-to-br from-green-50 to-emerald-50" :
-                          "border-slate-300 hover:border-purple-400 hover:bg-gradient-to-br hover:from-purple-50 hover:to-blue-50 hover:scale-[1.02] hover:shadow-lg"}`}
+                          "border-blue-400 hover:border-blue-600 hover:bg-gradient-to-br hover:from-blue-100 hover:to-cyan-100 hover:scale-[1.02] hover:shadow-lg"}`}
                       onDragOver={(e) => e.preventDefault()}
                       onDrop={(e) => {
                         e.preventDefault();
@@ -657,19 +657,19 @@ function App() {
                       <label className="cursor-pointer w-full h-full flex flex-col items-center justify-center z-10 p-8 relative">
                         {status === "idle" && (
                           <div className="space-y-4">
-                            <CloudArrowUpIcon className="h-24 w-24 text-purple-400 mx-auto group-hover:text-purple-600 transition-all group-hover:scale-110" />
+                            <CloudArrowUpIcon className="h-24 w-24 text-blue-500 mx-auto group-hover:text-blue-700 transition-all group-hover:scale-110" />
                             <div>
-                              <span className="text-2xl font-bold text-slate-700 group-hover:text-purple-700 block transition-colors">Drop your PDF here</span>
+                              <span className="text-2xl font-bold text-slate-700 group-hover:text-blue-700 block transition-colors">Drop your PDF here</span>
                               <span className="text-sm text-slate-500 mt-2 block">or click to browse files</span>
                             </div>
                           </div>
                         )}
                         {status === "processing" && (
                           <div className="flex flex-col items-center gap-6">
-                            <div className="w-16 h-16 border-4 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
+                            <div className="w-16 h-16 border-4 border-blue-700 border-t-transparent rounded-full animate-spin"></div>
                             <div className="text-center">
-                              <span className="text-xl text-purple-900 font-bold block mb-1">AI is working its magic</span>
-                              <span className="text-sm text-purple-600">Reading, processing, and converting to audio...</span>
+                              <span className="text-xl text-blue-800 font-bold block mb-1">AI is working its magic</span>
+                              <span className="text-sm text-blue-700">Reading, processing, and converting to audio...</span>
                             </div>
                           </div>
                         )}
@@ -697,7 +697,7 @@ function App() {
                           <a href={audioUrl} download="lecture_audio.mp3" className="flex items-center justify-center gap-3 bg-white text-green-700 font-bold py-4 px-6 rounded-xl shadow-md hover:bg-green-50 transition-all border border-green-200">
                             <ArrowDownTrayIcon className="h-5 w-5" /> Download MP3
                           </a>
-                          <button onClick={handleGenerateQuiz} disabled={quizStatus === 'loading'} className="flex items-center justify-center gap-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold py-4 px-6 rounded-xl shadow-md hover:shadow-lg transition-all active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed">
+                          <button onClick={handleGenerateQuiz} disabled={quizStatus === 'loading'} className="flex items-center justify-center gap-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-bold py-4 px-6 rounded-xl shadow-md hover:shadow-lg transition-all active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed">
                             {quizStatus === 'loading' ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : <AcademicCapIcon className="h-5 w-5" />}
                             {quizStatus === 'loading' ? "Generating..." : "Generate Quiz & Summary"}
                           </button>
@@ -710,20 +710,20 @@ function App() {
                 {/* VISUAL QUIZ */}
                 {showQuiz && quizData && (
                   <div className="animate-in fade-in slide-in-from-bottom-10 duration-700 mb-12">
-                    <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden border border-purple-200">
-                      <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-8 text-white">
-                        <h2 className="text-3xl font-bold flex items-center gap-3"><SparklesIcon className="w-8 h-8 text-yellow-300" /> Lecture Summary</h2>
-                        <p className="text-purple-100 mt-2">Key takeaways generated by AI</p>
+                    <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden border border-blue-300/40">
+                      <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-8 text-white">
+                        <h2 className="text-3xl font-bold flex items-center gap-3"><SparklesIcon className="w-8 h-8 text-blue-200" /> Lecture Summary</h2>
+                        <p className="text-blue-100 mt-2">Key takeaways generated by AI</p>
                       </div>
-                      <div className="p-8 border-b border-slate-100">
-                        <div className="prose prose-lg text-slate-700 leading-relaxed bg-indigo-50 p-6 rounded-2xl border border-indigo-100">{quizData.summary}</div>
+                      <div className="p-8 border-b border-blue-200">
+                        <div className="prose prose-lg text-slate-700 leading-relaxed bg-blue-100 p-6 rounded-2xl border border-blue-300">{quizData.summary}</div>
                       </div>
-                      <div className="p-8 bg-slate-50">
-                        <h3 className="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-2"><AcademicCapIcon className="w-7 h-7 text-indigo-600" /> Knowledge Check</h3>
+                      <div className="p-8 bg-blue-50">
+                        <h3 className="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-2"><AcademicCapIcon className="w-7 h-7 text-blue-700" /> Knowledge Check</h3>
                         <div className="space-y-6">
                           {quizData.quiz.map((q, idx) => (
                             <div key={idx} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                              <p className="font-bold text-lg text-slate-800 mb-4"><span className="text-indigo-600 mr-2">{idx + 1}.</span>{q.question}</p>
+                              <p className="font-bold text-lg text-slate-800 mb-4"><span className="text-blue-600 mr-2">{idx + 1}.</span>{q.question}</p>
                               <div className="grid grid-cols-1 gap-3">
                                 {q.options.map((opt, i) => (
                                   <button key={i} onClick={(e) => {
@@ -733,9 +733,9 @@ function App() {
                                       if(isCorrect) { btn.classList.add('ring-2', 'ring-green-500', 'bg-green-50'); } 
                                       else { btn.classList.add('ring-2', 'ring-red-500', 'bg-red-50'); }
                                     }}
-                                    className="text-left p-4 rounded-xl border border-slate-200 hover:bg-indigo-50 hover:border-indigo-300 transition-all flex items-center justify-between group"
+                                    className="text-left p-4 rounded-xl border border-slate-200 hover:bg-blue-50 hover:border-blue-300 transition-all flex items-center justify-between group"
                                   >
-                                    <span className="font-medium text-slate-600 group-hover:text-indigo-900">{opt}</span>
+                                    <span className="font-medium text-slate-600 group-hover:text-blue-900">{opt}</span>
                                   </button>
                                 ))}
                               </div>
@@ -752,23 +752,23 @@ function App() {
             {/* PAGE 2: BLIND MODE (Audio Learning) */}
             {currentPage === 'blind-mode' && (
                <div className="max-w-4xl mx-auto text-center py-10 animate-in fade-in zoom-in duration-500">
-                 <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full border border-white/20 mb-8">
-                    <EyeSlashIcon className="w-4 h-4 text-emerald-300" />
-                    <span className="text-sm text-emerald-200 font-medium">Audio Learning Mode</span>
+                 <div className="inline-flex items-center gap-2 bg-blue-400/20 backdrop-blur-sm px-4 py-2 rounded-full border border-blue-400/40 mb-8">
+                    <EyeSlashIcon className="w-4 h-4 text-blue-700" />
+                    <span className="text-sm text-blue-800 font-medium">Audio Learning Mode</span>
                   </div>
                   
-                  <h1 className="text-5xl font-black text-white mb-6">Blind Mode Quiz</h1>
-                  <p className="text-xl text-slate-300 mb-12 max-w-2xl mx-auto">
+                  <h1 className="text-5xl font-black text-blue-900 mb-6">Blind Mode Quiz</h1>
+                  <p className="text-xl text-blue-800 mb-12 max-w-2xl mx-auto">
                     Interact with your study material using only your voice. 
                     The AI will read questions aloud and listen for your answers.
                   </p>
 
                   {/* Start Card */}
-                  <div className="bg-white/95 backdrop-blur-xl rounded-3xl p-12 shadow-2xl border border-white/20">
+                  <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-12 shadow-2xl border border-blue-300/40">
                      <div className="mb-8">
-                        <div className={`w-32 h-32 rounded-full flex items-center justify-center mx-auto mb-6 transition-all duration-500 ${blindModeStatus === 'running' ? 'bg-emerald-100 animate-pulse ring-4 ring-emerald-300' : 'bg-slate-100'}`}>
+                        <div className={`w-32 h-32 rounded-full flex items-center justify-center mx-auto mb-6 transition-all duration-500 ${blindModeStatus === 'running' ? 'bg-blue-200 animate-pulse ring-4 ring-blue-400' : 'bg-slate-100'}`}>
                            {blindModeStatus === 'running' ? (
-                             <SpeakerWaveIcon className="w-16 h-16 text-emerald-600" />
+                             <SpeakerWaveIcon className="w-16 h-16 text-blue-700" />
                            ) : (
                              <MicrophoneIcon className="w-16 h-16 text-slate-400" />
                            )}
@@ -776,7 +776,7 @@ function App() {
                         <h3 className="text-2xl font-bold text-slate-800">
                           {blindModeStatus === 'running' ? "Quiz is Running..." : "Ready to Start"}
                         </h3>
-                        <p className="text-slate-500 mt-2">
+                        <p className="text-slate-600 mt-2">
                           {blindModeStatus === 'running' 
                             ? "Listen to your computer speakers and speak clearly." 
                             : "Make sure you have uploaded a PDF in the 'Visual Learning' tab first."}
@@ -789,7 +789,7 @@ function App() {
                        className={`w-full max-w-md mx-auto py-5 px-8 rounded-2xl text-xl font-bold text-white transition-all shadow-xl hover:scale-105 active:scale-95
                          ${blindModeStatus === 'running' 
                            ? 'bg-slate-400 cursor-not-allowed' 
-                           : 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 shadow-emerald-500/20'}`}
+                           : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 shadow-blue-400/40'}`}
                      >
                        {blindModeStatus === 'running' ? "Quiz in Progress" : "Start Voice Quiz"}
                      </button>
@@ -798,23 +798,23 @@ function App() {
                   {/* Results Card */}
                   {blindQuizResults && (
                     <div className="mt-12 animate-in fade-in slide-in-from-bottom-10 duration-1000 text-left">
-                        <div className="bg-white/95 backdrop-blur-xl rounded-3xl overflow-hidden shadow-2xl border border-emerald-200">
-                          <div className="bg-gradient-to-r from-emerald-600 to-teal-600 p-8 text-center text-white">
+                        <div className="bg-white/80 backdrop-blur-xl rounded-3xl overflow-hidden shadow-2xl border border-blue-300/40">
+                          <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-8 text-center text-white">
                               <h2 className="text-3xl font-black mb-2 flex items-center justify-center gap-3">
-                                <AcademicCapIcon className="w-8 h-8 text-emerald-200"/> 
+                                <AcademicCapIcon className="w-8 h-8 text-blue-200"/> 
                                 Quiz Results
                               </h2>
                               <div className="text-6xl font-black tracking-tighter my-4 bg-white/10 inline-block px-8 py-2 rounded-2xl border border-white/20">
                                 {blindQuizResults.score} / {blindQuizResults.total}
                               </div>
-                              <p className="text-emerald-100 text-lg font-medium">Great effort! Here is the breakdown:</p>
+                              <p className="text-blue-100 text-lg font-medium">Great effort! Here is the breakdown:</p>
                           </div>
 
-                          <div className="p-8 bg-slate-50 space-y-6">
+                          <div className="p-8 bg-blue-50 space-y-6">
                               {blindQuizResults.questions.map((q, idx) => (
                                 <div key={idx} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                                     <div className="flex gap-4">
-                                      <div className="flex-shrink-0 w-8 h-8 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center font-bold">
+                                      <div className="flex-shrink-0 w-8 h-8 bg-cyan-100 text-cyan-700 rounded-full flex items-center justify-center font-bold">
                                           {idx + 1}
                                       </div>
                                       <div className="flex-1">
@@ -827,15 +827,15 @@ function App() {
                                                 return (
                                                   <div key={i} className={`p-3 rounded-xl border flex items-center gap-3 transition-colors
                                                       ${isCorrect 
-                                                        ? 'bg-emerald-50 border-emerald-200 text-emerald-900 font-bold shadow-sm' 
-                                                        : 'bg-white border-slate-100 text-slate-500'
+                                                        ? 'bg-blue-100 border-blue-400 text-blue-900 font-bold shadow-sm' 
+                                                        : 'bg-white border-slate-200 text-slate-500'
                                                       }`}>
                                                       <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold border
-                                                        ${isCorrect ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-slate-50 border-slate-200 text-slate-400'}`}>
+                                                        ${isCorrect ? 'bg-blue-600 text-white border-blue-600' : 'bg-slate-100 border-slate-300 text-slate-400'}`}>
                                                         {letter}
                                                       </span>
                                                       <span className="flex-1">{opt}</span>
-                                                      {isCorrect && <CheckCircleIcon className="w-6 h-6 text-emerald-500 ml-auto" />}
+                                                      {isCorrect && <CheckCircleIcon className="w-6 h-6 text-blue-600 ml-auto" />}
                                                   </div>
                                                 )
                                             })}
@@ -856,20 +856,20 @@ function App() {
             {currentPage === 'audio-to-text' && (
               <div className="max-w-4xl mx-auto animate-in fade-in zoom-in duration-500">
                 <div className="text-center mb-12 space-y-4">
-                  <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full border border-white/20 mb-4">
-                    <MicrophoneIcon className="w-4 h-4 text-blue-300" />
-                    <span className="text-sm text-blue-200 font-medium">Live Voice to Text</span>
+                  <div className="inline-flex items-center gap-2 bg-blue-400/20 backdrop-blur-sm px-4 py-2 rounded-full border border-blue-400/40 mb-4">
+                    <MicrophoneIcon className="w-4 h-4 text-blue-700" />
+                    <span className="text-sm text-blue-800 font-medium">Live Voice to Text</span>
                   </div>
-                  <h1 className="text-5xl lg:text-6xl font-black tracking-tight mb-3 bg-clip-text text-transparent bg-gradient-to-r from-white via-blue-200 to-white">
+                  <h1 className="text-5xl lg:text-6xl font-black tracking-tight mb-3 bg-clip-text text-transparent bg-gradient-to-r from-blue-900 via-blue-700 to-blue-900">
                     Voice Transcription
                   </h1>
-                  <p className="text-lg text-slate-300 max-w-2xl mx-auto">
+                  <p className="text-lg text-blue-800 max-w-2xl mx-auto">
                     Record with your microphone and convert speech into text, powered by Vosk.
                   </p>
                 </div>
 
                 <div className="grid lg:grid-cols-1 gap-8 mb-8">
-                  <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl p-10 border border-white/20">
+                  <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl p-10 border border-blue-300/40">
                     
                     {/* RECORDING CONTROLS */}
                     <div className="mb-10">
@@ -904,7 +904,7 @@ function App() {
                       {/* RECORDING INDICATOR */}
                       {isRecording && (
                         <div className="text-center mb-6">
-                          <div className="flex items-center justify-center gap-3 text-lg font-bold text-blue-700 bg-blue-50 py-3 px-6 rounded-xl inline-block w-full sm:w-auto">
+                          <div className="flex items-center justify-center gap-3 text-lg font-bold text-blue-800 bg-blue-100 py-3 px-6 rounded-xl inline-block w-full sm:w-auto">
                             <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
                             Recording: {Math.floor(recordingTime / 60)}:{String(recordingTime % 60).padStart(2, '0')}
                           </div>
@@ -914,8 +914,8 @@ function App() {
                       {/* PROCESSING INDICATOR */}
                       {transcriptStatus === "processing" && (
                         <div className="text-center mb-6">
-                          <div className="flex items-center justify-center gap-3 text-lg font-bold text-purple-700 bg-purple-50 py-3 px-6 rounded-xl inline-block w-full sm:w-auto">
-                            <div className="w-4 h-4 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
+                          <div className="flex items-center justify-center gap-3 text-lg font-bold text-blue-800 bg-blue-100 py-3 px-6 rounded-xl inline-block w-full sm:w-auto">
+                            <div className="w-4 h-4 border-2 border-blue-700 border-t-transparent rounded-full animate-spin"></div>
                             Transcribing...
                           </div>
                         </div>
@@ -924,17 +924,17 @@ function App() {
 
                     {/* LAST RECORDING SECTION */}
                     {lastRecordingUrl && (
-                      <div className="mb-10 pb-10 border-b border-slate-200">
+                      <div className="mb-10 pb-10 border-b border-blue-300">
                         <div className="flex items-center gap-3 mb-4">
-                          <svg className="w-5 h-5 text-slate-600" fill="currentColor" viewBox="0 0 20 20">
+                          <svg className="w-5 h-5 text-blue-700" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" />
                           </svg>
-                          <h3 className="text-slate-800 font-bold text-lg">Last recording</h3>
+                          <h3 className="text-blue-900 font-bold text-lg">Last recording</h3>
                         </div>
                         <audio 
                           controls 
                           src={lastRecordingUrl} 
-                          className="w-full rounded-lg shadow-md border border-slate-200 accent-blue-600"
+                          className="w-full rounded-lg shadow-md border border-blue-300 accent-blue-700"
                         />
                       </div>
                     )}
@@ -943,8 +943,8 @@ function App() {
                     <div>
                       <div className="flex items-center gap-3 justify-between mb-4">
                         <div className="flex items-center gap-3">
-                          <DocumentTextIcon className="w-5 h-5 text-slate-600" />
-                          <h3 className="text-slate-800 font-bold text-lg">Transcript</h3>
+                          <DocumentTextIcon className="w-5 h-5 text-blue-700" />
+                          <h3 className="text-blue-900 font-bold text-lg">Transcript</h3>
                         </div>
                         {transcriptText && (
                           <button
@@ -958,8 +958,8 @@ function App() {
                       
                       <div className={`min-h-40 p-6 rounded-xl border-2 transition-all ${
                         transcriptText 
-                          ? 'border-blue-200 bg-blue-50 text-slate-700' 
-                          : 'border-slate-200 bg-slate-50 text-slate-400'
+                          ? 'border-blue-400 bg-blue-100 text-slate-700' 
+                          : 'border-slate-300 bg-slate-50 text-slate-400'
                       }`}>
                         {transcriptText ? (
                           <p className="text-base leading-relaxed whitespace-pre-wrap">{transcriptText}</p>
@@ -981,9 +981,9 @@ function App() {
 
             {currentPage === 'sign-language' && (
               <div className="max-w-4xl mx-auto text-center py-20">
-                 <HandRaisedIcon className="w-24 h-24 text-orange-400 mx-auto mb-6 opacity-50" />
-                 <h1 className="text-4xl font-bold text-white mb-4">Coming Soon</h1>
-                 <p className="text-orange-200">Sign language interpretation is under development.</p>
+                 <HandRaisedIcon className="w-24 h-24 text-blue-600 mx-auto mb-6 opacity-50" />
+                 <h1 className="text-4xl font-bold text-blue-900 mb-4">Coming Soon</h1>
+                 <p className="text-blue-700">Sign language interpretation is under development.</p>
               </div>
             )}
 

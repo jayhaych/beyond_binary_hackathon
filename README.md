@@ -527,7 +527,12 @@ GEMINI_API_KEY=AIza...
 
 ## 👥 Team & Credits
 
-**OmniLearn** - Built for inclusive accessibility in education using modern AI technologies.
+### Team Members
+
+- Tee Jia Hong
+- Chu Shun Yuan
+- Mao Ze Ming
+- Nicole Wong Jing Han
 
 ### Technologies Used
 
